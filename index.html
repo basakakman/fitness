@@ -123,6 +123,7 @@ details.more summary{cursor:pointer;color:var(--rose);font-size:14px;margin-top:
   <header>
     <div><h1>Growth Diary</h1><div class="sub" id="subline"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn ghost" id="syncBtn" type="button">Sync: off</button>
       <button class="btn ghost" id="exportBtn">Export backup</button>
       <label class="btn ghost" style="flex-direction:row;color:var(--ink);font-size:14px;cursor:pointer">Import<input type="file" id="importFile" accept=".json" hidden></label>
     </div>
@@ -276,10 +277,29 @@ const addDays=(d,n)=>{const x=new Date(d+'T12:00');x.setDate(x.getDate()+n);retu
 let local={measurements:[],food:[],lifts:[],habits:[],sessions:[],profile:{},deleted:[]};
 try{Object.assign(local,JSON.parse(localStorage.getItem(KEY))||{})}catch(e){}
 ['sessions'].forEach(k=>local[k]=local[k]||[]);
-function save(){try{localStorage.setItem(KEY,JSON.stringify(local))}catch(e){toast('Browser storage blocked — use Export backup')}}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(local))}catch(e){toast('Browser storage blocked — use Export backup')}}
+function save(){saveLocal();schedulePush()}
+/* ---------- cloud sync (own Supabase project "growth-diary"; separate from anything else) ---------- */
+const SB={url:'https://ndlovmgxlzrxqvgkahyl.supabase.co',key:'sb_publishable_0ZjG6EB0VFWQRK3nF-QfhQ_qdL4sq_I'};
+const SYNCK=KEY+'-sync';
+const getPass=()=>{try{return localStorage.getItem(SYNCK)||''}catch(e){return''}};
+function setSyncUI(t,c){const b=document.getElementById('syncBtn');if(b){b.textContent=t;b.dataset.s=c||''}}
+async function rpc(fn,args){const r=await fetch(SB.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:SB.key,Authorization:'Bearer '+SB.key,'Content-Type':'application/json'},body:JSON.stringify(args)});if(!r.ok)throw new Error(await r.text());const t=await r.text();return t?JSON.parse(t):null}
+function mergeRemote(rem){if(!rem)return;
+  local.deleted=[...new Set([...(rem.deleted||[]),...(local.deleted||[])])];
+  ['measurements','food','lifts','habits','sessions'].forEach(k=>{const m=new Map();[...(rem[k]||[]),...(local[k]||[])].forEach(e=>m.set(e.id,e));local[k]=[...m.values()].filter(e=>!local.deleted.includes(e.id))});
+  local.profile=Object.assign({},rem.profile,local.profile);
+  if(rem.plans||local.plans)local.plans=Object.assign({},rem.plans,local.plans)}
+let pushT=null,syncing=false;
+async function syncNow(){const k=getPass();if(!k){setSyncUI('Sync: off','off');return}
+  if(syncing)return;syncing=true;setSyncUI('Syncing…','busy');
+  try{const rem=await rpc('diary_get',{p_key:k});mergeRemote(rem);saveLocal();await rpc('diary_put',{p_key:k,p_data:local});setSyncUI('✓ Synced','ok');render()}
+  catch(e){setSyncUI(/wrong passphrase/.test(e.message)?'Wrong passphrase':'Sync failed — offline?','err')}
+  syncing=false}
+function schedulePush(){if(!getPass())return;clearTimeout(pushT);setSyncUI('Saving…','busy');pushT=setTimeout(syncNow,800)}
 function all(k){const m=new Map();[...(S[k]||[]),...(local[k]||[])].forEach(e=>m.set(e.id,e));return[...m.values()].filter(e=>!local.deleted.includes(e.id)).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0)}
 function upsert(k,e){local[k]=local[k].filter(x=>x.id!==e.id);local[k].push(e);local.deleted=local.deleted.filter(x=>x!==e.id);save();render()}
-function remove(k,id){local[k]=local[k].filter(x=>x.id!==id);if((S[k]||[]).some(x=>x.id===id))local.deleted.push(id);save();render()}
+function remove(k,id){local[k]=local[k].filter(x=>x.id!==id);if(!local.deleted.includes(id))local.deleted.push(id);save();render()}
 const profile=()=>Object.assign({},S.profile,local.profile);
 function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),1800)}
 
@@ -309,7 +329,210 @@ const FOODS=[
 ["Lahmacun (1 ≈ 120 g)",220,10,8,28,120,"estimate"],["Chicken döner",200,20,10,6,150,"estimate"],["Köfte, grilled",230,18,16,4,150,"estimate"],
 ["Cacık",50,3,2.5,4,150,"estimate"],["Pide with cheese",270,11,10,34,200,"estimate"],["Protein bar",350,33,12,35,60,"label avg"],
 ["Latte / cappuccino (whole milk)",56,3.1,2.9,4.6,300,"estimate"],["Pizza margherita",250,11,10,30,250,"estimate"],
-["Wine",83,0.1,0,2.6,150,"USDA"],["Beer",43,0.5,0,3.6,330,"USDA"]
+["Wine",83,0.1,0,2.6,150,"USDA"],["Beer",43,0.5,0,3.6,330,"USDA"],
+// Turkish foods — typical values per 100 g (estimates, ±15–20%)
+["Baklava (1 piece ≈ 50 g)",430,6,25,48,50,"estimate"],
+["Künefe",330,6,17,38,150,"estimate"],
+["Sütlaç (rice pudding)",130,3.5,3.5,21,150,"estimate"],
+["Kazandibi",150,4,4,24,150,"estimate"],
+["Revani / şambali",330,4,12,52,100,"estimate"],
+["Tulumba tatlısı",400,4,18,56,60,"estimate"],
+["Aşure",140,3,3,26,200,"estimate"],
+["Lokum (Turkish delight, 1 ≈ 10 g)",330,0.5,1,80,30,"estimate"],
+["Helva, tahini",516,12.5,29,50,30,"estimate"],
+["Helva, irmik (semolina)",300,3,12,45,60,"estimate"],
+["Kaymak",340,2,36,3,30,"estimate"],
+["Tahin",595,17,54,21,15,"estimate"],
+["Pekmez (grape molasses)",290,1,0,72,20,"estimate"],
+["Mantı (with yogurt sauce)",190,8,8,22,250,"estimate"],
+["İskender kebap",220,15,14,8,300,"estimate"],
+["Adana / urfa kebap",230,17,17,2,150,"estimate"],
+["Tavuk şiş",150,24,5,1,150,"estimate"],
+["Tantuni",220,15,12,12,150,"estimate"],
+["Kuru fasulye",110,6.5,3.5,13,250,"estimate"],
+["Karnıyarık",130,5,9,8,250,"estimate"],
+["İmam bayıldı",100,1.5,7,9,200,"estimate"],
+["Zeytinyağlı yaprak sarma (1 ≈ 25 g)",160,3,7,22,100,"estimate"],
+["Etli yaprak sarma / dolma",150,6,8,13,150,"estimate"],
+["Şakşuka",90,1.5,6,8,120,"estimate"],
+["Çiğ köfte",160,4,3,28,100,"estimate"],
+["Peynirli börek",290,9,17,25,100,"estimate"],
+["Su böreği",250,9,13,24,150,"estimate"],
+["Sigara böreği (1 ≈ 40 g)",300,9,18,26,40,"estimate"],
+["Gözleme",230,7,10,28,150,"estimate"],
+["Poğaça",340,8,16,40,70,"estimate"],
+["Açma",330,8,13,45,70,"estimate"],
+["Pilav, tereyağlı (buttery rice)",170,3,5,28,150,"estimate"],
+["Şehriye pilavı",160,3,4,28,150,"estimate"],
+["Kumpir (baked potato, loaded)",130,3,5,20,350,"estimate"],
+["Balık ekmek (fish sandwich)",230,12,9,25,200,"estimate"],
+["Pide, kıymalı (mince)",260,12,10,32,200,"estimate"],
+["Ezogelin çorbası",60,3,1.5,9,300,"estimate"],
+["Tarhana çorbası",55,2.5,1.5,8,300,"estimate"],
+["Domates çorbası",45,1,2,6,300,"estimate"],
+["Sucuk",450,20,40,2,30,"estimate"],
+["Pastırma",200,30,8,1,30,"estimate"],
+["Zeytin (olives)",145,1,15,4,30,"estimate"],
+["Kefir",50,3.5,2,4,200,"estimate"],
+["Salep",90,2.5,2,16,200,"estimate"],
+["Boza",70,1,0.5,16,250,"estimate"],
+["Çay with 2 sugar cubes",32,0,0,8,100,"estimate"],
+["Fıstıklı baklava",450,7,27,47,50,"estimate"],
+["Şöbiyet",420,7,24,45,70,"estimate"],
+["Kadayıf, tel kadayıf",400,5,20,52,80,"estimate"],
+["Ekmek kadayıfı (with kaymak)",340,3,15,48,120,"estimate"],
+["Sütlü nuri",150,4,4,25,150,"estimate"],
+["Supangle (chocolate pudding)",150,3.5,6,21,150,"estimate"],
+["Profiterol",260,4,15,28,100,"estimate"],
+["Trileçe",250,5,10,35,130,"estimate"],
+["Dondurma (Turkish ice cream)",200,4,8,28,100,"estimate"],
+["Muhallebi",120,3.5,3,20,150,"estimate"],
+["Keşkül",140,4,5,20,150,"estimate"],
+["Irmik helvası",300,3,12,45,60,"estimate"],
+["Un helvası",330,3,15,45,60,"estimate"],
+["Cevizli sucuk (churchkhela)",350,5,12,60,40,"estimate"],
+["Pişmaniye",470,2,22,64,30,"estimate"],
+["Lokum, fıstıklı / cevizli",350,2,8,65,30,"estimate"],
+["Kuru kayısı (dried apricot)",241,3.4,0.5,63,40,"estimate"],
+["Kuru incir (dried fig)",249,3.3,0.9,64,40,"estimate"],
+["İncir (fresh fig)",74,0.8,0.3,19,50,"estimate"],
+["Hurma (dates)",282,2.5,0.4,75,24,"estimate"],
+["Beyaz peynir + domates + salatalık plate",150,8,11,4,200,"estimate"],
+["Sahanda yumurta (fried eggs, 2)",196,13,15,1,100,"estimate"],
+["Sucuklu yumurta",260,15,21,2,150,"estimate"],
+["Kaşarlı tost",290,13,13,30,150,"estimate"],
+["Karışık tost",300,14,14,28,170,"estimate"],
+["Ayvalı / kaymaklı bal",320,2,25,25,40,"estimate"],
+["Reçel (jam, 1 tbsp ≈ 20 g)",250,0.4,0.1,65,20,"estimate"],
+["Zeytin ezmesi",200,1.5,20,3,30,"estimate"],
+["Haşlanmış yumurta (boiled)",155,13,11,1.1,50,"estimate"],
+["Börek, ıspanaklı (spinach)",250,7,13,26,120,"estimate"],
+["Simit + peynir",300,11,10,43,150,"estimate"],
+["Kahvaltı tabağı (full plate)",180,8,11,12,350,"estimate"],
+["Mercimek çorbası, sade (plain)",55,3.5,1.5,8,300,"estimate"],
+["Yayla çorbası",65,2.5,3,7,300,"estimate"],
+["Düğün çorbası",85,4,5,6,300,"estimate"],
+["Işkembe çorbası (tripe)",70,5,4,3,300,"estimate"],
+["Sebze çorbası (vegetable)",35,1.2,1,5,300,"estimate"],
+["Tavuk suyu çorbası",45,3,2,4,300,"estimate"],
+["Kelle paça",90,8,6,1,300,"estimate"],
+["Balık çorbası",55,5,2,4,300,"estimate"],
+["Döner, et (beef)",230,20,15,2,150,"estimate"],
+["Tavuk döner dürüm (wrap)",210,13,8,22,250,"estimate"],
+["Et döner dürüm (wrap)",240,13,11,22,250,"estimate"],
+["Köfte ekmek",250,13,11,25,200,"estimate"],
+["Kuzu pirzola (lamb chop, grilled)",290,25,21,0,120,"estimate"],
+["Kuzu tandır (slow lamb)",260,22,19,0,150,"estimate"],
+["Kuşbaşı (cubed meat)",200,24,11,1,150,"estimate"],
+["Beyti kebap",230,16,16,6,250,"estimate"],
+["Patlıcan kebabı",160,10,10,6,250,"estimate"],
+["Şiş köfte",230,18,16,4,150,"estimate"],
+["Cağ kebabı",250,22,17,1,150,"estimate"],
+["Ciğer, kuzu (liver, grilled)",180,24,8,2,120,"estimate"],
+["Kokoreç",280,16,22,2,150,"estimate"],
+["Kavurma",320,25,25,0,100,"estimate"],
+["Güveç (meat stew)",120,9,6,7,300,"estimate"],
+["Tas kebabı",130,12,7,5,250,"estimate"],
+["Hünkar beğendi",160,10,10,8,300,"estimate"],
+["Orman kebabı",140,10,8,8,250,"estimate"],
+["Kıymalı pide",265,12,11,31,200,"estimate"],
+["Kuşbaşılı pide",270,13,12,30,200,"estimate"],
+["Lahmacun + ayran combo plate",200,10,7,26,200,"estimate"],
+["Tavuk sote",130,14,6,5,250,"estimate"],
+["Tavuk haşlama (boiled chicken)",150,26,5,0,150,"estimate"],
+["Tavuk but, fırın (baked thigh)",215,25,12,0,150,"estimate"],
+["Piliç izgara (grilled chicken)",165,28,6,0,150,"estimate"],
+["Fırında tavuk + patates",150,12,7,9,300,"estimate"],
+["Etli nohut",140,9,6,13,250,"estimate"],
+["Etli kuru fasulye",130,8,5,13,250,"estimate"],
+["Etli türlü",95,5,5,8,300,"estimate"],
+["Etli bamya",90,5,5,6,250,"estimate"],
+["Etli ıspanak",80,5,4,5,250,"estimate"],
+["Biber dolması (stuffed pepper)",120,5,6,11,200,"estimate"],
+["Kabak dolması",110,5,6,9,200,"estimate"],
+["Patlıcan dolması",120,5,7,9,200,"estimate"],
+["Etli kabak / kabak yemeği",70,3,4,5,250,"estimate"],
+["Lahana sarma",130,6,6,12,200,"estimate"],
+["Taze fasulye (green beans, olive oil)",85,2,5,8,200,"estimate"],
+["Barbunya pilaki",110,5,4,13,200,"estimate"],
+["Zeytinyağlı enginar",90,2,6,8,200,"estimate"],
+["Zeytinyağlı pırasa",80,1.5,5,8,200,"estimate"],
+["Türlü (veg stew)",70,2,3,9,300,"estimate"],
+["Ispanak yemeği",70,3,4,5,250,"estimate"],
+["Mücver (zucchini fritters)",170,6,11,12,120,"estimate"],
+["Kabak çiçeği dolması",130,3,7,14,100,"estimate"],
+["Patates közleme / salata",90,2,3,14,200,"estimate"],
+["Patates kızartması (fries)",312,3.4,15,41,150,"estimate"],
+["Kızarmış patlıcan",150,2,12,9,150,"estimate"],
+["Közlenmiş patlıcan",35,1,0.3,8,150,"estimate"],
+["Haydari",110,4,8,4,60,"estimate"],
+["Atom (spicy yogurt dip)",100,4,7,5,60,"estimate"],
+["Muhammara",250,4,20,14,40,"estimate"],
+["Babagannuş",90,2,7,6,60,"estimate"],
+["Ezme (spicy tomato)",55,1.5,3,6,60,"estimate"],
+["Çoban salatası",50,1.2,3,5,200,"estimate"],
+["Gavurdağı salatası",120,3,9,7,200,"estimate"],
+["Piyaz",120,6,5,14,150,"estimate"],
+["Roka salatası",35,2.5,1.5,3,100,"estimate"],
+["Mevsim salata (olive oil dressed)",60,1.5,4,5,200,"estimate"],
+["Közlenmiş biber + sarımsak",50,1,3,5,100,"estimate"],
+["Turşu (pickles)",15,0.5,0,3,100,"estimate"],
+["Bulgur pilavı",110,3.5,3,18,150,"estimate"],
+["Domatesli pilav",150,3,4,26,150,"estimate"],
+["Nohutlu pilav",170,5,5,27,150,"estimate"],
+["Makarna, sade (boiled)",158,5.8,0.9,30.9,180,"estimate"],
+["Erişte",160,5,3,28,150,"estimate"],
+["Mantı, kuru (dried, boiled)",190,7,5,28,200,"estimate"],
+["Yufka ekmek",270,8,2,56,60,"estimate"],
+["Lavaş",275,9,1.5,57,50,"estimate"],
+["Pita / pide ekmeği",260,8,2,52,80,"estimate"],
+["Bazlama",250,8,2,50,100,"estimate"],
+["Ekmek, beyaz (1 slice ≈ 30 g)",265,9,3,49,30,"estimate"],
+["Tam buğday ekmeği (slice)",247,13,3.4,41,35,"estimate"],
+["Çavdar ekmeği (rye, slice)",259,8.5,3.3,48,35,"estimate"],
+["Gevrek / halka",350,10,10,55,60,"estimate"],
+["Pişi",330,7,16,40,60,"estimate"],
+["Mısır (corn on cob)",96,3.4,1.5,21,150,"estimate"],
+["Mısır, haşlanmış",110,3,1.5,22,150,"estimate"],
+["Kestane (roasted chestnuts)",245,3.2,2.2,53,50,"estimate"],
+["Patates, haşlanmış",87,1.9,0.1,20,200,"estimate"],
+["Balkabağı tatlısı (pumpkin dessert)",170,1,4,35,150,"estimate"],
+["Balık, ızgara (levrek / çipura)",125,22,4,0,150,"estimate"],
+["Hamsi tava (fried anchovy)",230,18,16,3,150,"estimate"],
+["Midye dolma (1 ≈ 25 g)",130,5,3,20,100,"estimate"],
+["Midye tava",230,12,12,18,100,"estimate"],
+["Kumru sandviç",320,14,16,28,200,"estimate"],
+["Islak hamburger",260,10,10,33,100,"estimate"],
+["Çiğ köfte dürüm",190,5,4,34,200,"estimate"],
+["Waffle (street)",330,6,15,43,150,"estimate"],
+["Kestane kebap / kumpir sosisli",160,5,8,16,350,"estimate"],
+["Hamburger, standart",250,13,11,25,200,"estimate"],
+["Pizza, dilim (slice)",270,12,10,33,120,"estimate"],
+["Sushi roll (8 pc)",150,5,2,28,200,"estimate"],
+["Türk kahvesi (no sugar)",2,0.1,0,0,60,"estimate"],
+["Türk kahvesi + sugar",35,0.1,0,9,60,"estimate"],
+["Çay (no sugar)",1,0,0,0.3,100,"estimate"],
+["Nescafé + süt",30,1.5,1,3.5,200,"estimate"],
+["Filtre kahve (black)",1,0.1,0,0,250,"estimate"],
+["Latte (oat milk)",45,1,1.5,7,300,"estimate"],
+["Salep (with milk)",100,3,2,18,200,"estimate"],
+["Ihlamur / bitki çayı",1,0,0,0.2,100,"estimate"],
+["Şalgam",12,0.3,0,2.5,250,"estimate"],
+["Limonata",40,0,0,10,250,"estimate"],
+["Meyve suyu (orange juice)",45,0.7,0.2,10.4,250,"estimate"],
+["Gazoz / cola",42,0,0,10.6,330,"estimate"],
+["Kuru yemiş mix (trail mix)",520,14,38,32,30,"estimate"],
+["Leblebi (roasted chickpeas)",364,19,6,61,30,"estimate"],
+["Ayçekirdeği (sunflower seeds)",584,21,51,20,30,"estimate"],
+["Antep fıstığı (pistachios)",562,20,45,28,30,"estimate"],
+["Fındık (hazelnuts)",628,15,61,17,30,"estimate"],
+["Kaju (cashews)",553,18,44,30,30,"estimate"],
+["Çekirdek kabak (pumpkin seeds)",559,30,49,11,30,"estimate"],
+["Kuru üzüm (raisins)",299,3,0.5,79,30,"estimate"],
+["Tahin + pekmez (spoon)",440,9,27,43,25,"estimate"],
+["Çikolata, sütlü (milk chocolate)",535,7.6,30,59,25,"estimate"],
+["Gofret / çikolatalı bar",500,6,26,63,40,"estimate"],
+["Bisküvi (plain biscuit)",450,7,15,72,30,"estimate"]
 ];
 
 let PICK=null;
@@ -338,7 +561,7 @@ async function onlineSearch(q){const msg=$('#fOnlineMsg');const pq=parseQ(q);con
       const sv=(x.foodMeasures||[]).find(m=>m.gramWeight)?.gramWeight;
       out.push({name:x.description.charAt(0)+x.description.slice(1).toLowerCase(),kcal:n(e=>/^Energy/.test(e.nutrientName)&&e.unitName==='KCAL'),p:n(e=>e.nutrientName==='Protein'),f:n(e=>e.nutrientName==='Total lipid (fat)'),c:n(e=>/^Carbohydrate/.test(e.nutrientName)),serving:sv?Math.round(sv):100,src:'USDA'})})}}catch(e){}
   const w0=pq.words[0]||'';out.sort((a,b)=>(b.name.toLowerCase().startsWith(w0)?1:0)-(a.name.toLowerCase().startsWith(w0)?1:0));
-  msg.textContent=out.length?`${out.length} results from USDA`:busy?'Online search is busy (free limit ~30 searches/hour). Try again soon.':'Nothing found online — check your internet.';showResults(out.map(x=>({...x,p:+x.p.toFixed(1)})))}
+  msg.textContent=out.length?`${out.length} results from USDA`:busy?'Online search is busy (free limit ~30 searches/hour). Try again soon.':'Online lookup unavailable (no internet, or this page blocks it). Showing built-in foods only.';showResults(out.map(x=>({...x,p:+x.p.toFixed(1)})))}
 
 const DEF=[['upper'],['core','yoga'],['gluteA','stretch'],['full'],[],['gluteB','stretch'],['yoga']];
 const tplType=k=>(S.templates[k]||{type:k}).type;
@@ -545,6 +768,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('#saveWorkout');i
     local.lifts=local.lifts.filter(x=>x.id!==id);local.lifts.push({id,date:td,exercise:ex,weight:v,sets:m?+m[1]:null,reps:m?+m[2]:null,note:'from plan'});n++});
   const ws=weekOf(td)[0],P=getPlan(ws);const it=(P[td]||[]).find(x=>x.k===b.dataset.k);if(it)it.done=true;local.plans=local.plans||{};local.plans[ws]=P;save();render();toast(n?`Saved ${n} lift${n>1?'s':''} ✓`:'Workout done ✓')});
 $('#importFile').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());['measurements','food','lifts','habits','deleted'].forEach(k=>{const m=new Map((local[k]||[]).map(x=>[x.id??x,x]));(d[k]||[]).forEach(x=>m.set(x.id??x,x));local[k]=[...m.values()]});if(d.profile)local.profile={...local.profile,...d.profile};if(d.plans)local.plans={...(local.plans||{}),...d.plans};save();render();toast('Imported')}catch(err){toast('Could not read that file')}};
+$('#syncBtn').onclick=()=>{if(!getPass()){const k=prompt('Choose a sync passphrase (6+ characters). Use the SAME one on every device. First time sets it; keep it somewhere safe.');if(!k||k.length<6)return;try{localStorage.setItem(SYNCK,k)}catch(e){}}syncNow()};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncNow()});
+syncNow();
 render();
 </script>
 </body>
