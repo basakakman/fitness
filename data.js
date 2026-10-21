@@ -7,7 +7,7 @@ window.SEED = {
   profile: { sex: "female", heightCm: 163, age: 30 },
 
   targets: {
-    protein: 110, proteinMin: 95, calMin: 2100, calMax: 2200, fatMin: 55, fatMax: 65, carbsMin: 150, carbsMax: 200, carbsGluteMin: 220, carbsGluteMax: 250, // carbs: higher on glute days
+    protein: 115, proteinMin: 105, calMin: 1950, calMax: 2100, fatMin: 55, fatMax: 65, carbsMin: 225, carbsMax: 250, carbsGluteMin: 265, carbsGluteMax: 285, // carbs: higher on glute days
     stepsMin: 8000, stepsMax: 12000, creatineG: 5
   },
 
@@ -18,7 +18,7 @@ window.SEED = {
     gluteA: { type: "glute", name: "Glute A · Heavy", note: "Based on your Oct 18 session. Low reps, add weight when all reps feel solid.",
       ex: [["Hip Thrust","4 × 8"],["Hip Abduction","3 × 6–10"],["Squat","3 × 8"],["Bulgarian Split Squat","2 × 6 / leg"],["Standing Glute Kickback (machine)","2 / leg"],["RDL","2–3 × 6–8"],["45° Back Extension","2 × 10"]] },
     gluteB: { type: "glute", name: "Glute B · Pump", note: "Lighter, more reps. Same muscles, different stimulus.",
-      ex: [["Hip Thrust","3 × 12"],["DB RDL","3 × 10"],["Walking Lunges","3 × 12 / leg"],["Cable Kickback","3 × 15 / leg"],["Hip Abduction","3 × 20"],["45° Back Extension","3 × 15"]] },
+      ex: [["Hip Thrust (machine)","3 × 8"],["Barbell RDL","3 × 8"],["Hip Abduction","3 × 12"],["Leg Curl (hamstring)","3 × 6"],["Cable Kickback","2 × 6 / leg"],["45° Back Extension","3 × 5"]] },
     upper:  { type: "upper", name: "Upper", note: "Back + posture + arm tone. Light shoulders (your frame is already broad).",
       ex: [["Lat Pulldown","3 × 10"],["Seated Cable Row","3 × 10"],["Lateral Raise","3 × 15"],["Face Pull","3 × 15"],["Triceps Rope Pushdown","3 × 12"],["Incline DB Press","2 × 10"]] },
     core:   { type: "core", name: "Core + Cardio", note: "Core that helps you brace on heavy hip thrusts, then easy cardio (you can talk, not sing).",
@@ -31,27 +31,25 @@ window.SEED = {
 
   goals: {
     start: "2026-10-17",
-    year: { date: "2027-10-17", weightMin: 58, weightMax: 60, waist: 65, waistLikely: [66, 68], gluteMin: 98, gluteMax: 100, top: 85 },
-    // Phases: build (small surplus) → mini-cut (small deficit) → build
+    year: { date: "2027-10-17", weightMin: 57, weightMax: 58, waist: 65, waistLikely: [66, 68], gluteMin: 98, gluteMax: 100, top: 85 },
+    // Phase: one long recomposition (eat ~maintenance, build glutes, waist slowly shrinks). No bulk, no cut.
     phases: [
-      { name: "Build", from: "2026-10-17", to: "2027-03-17", kcal: "+150 / day" },
-      { name: "Mini-cut", from: "2027-03-17", to: "2027-06-17", kcal: "−300 / day" },
-      { name: "Build", from: "2027-06-17", to: "2027-10-17", kcal: "+150 / day" }
+      { name: "Recomp", from: "2026-10-17", to: "2027-10-17", kcal: "≈ maintenance (1,950–2,100)" }
     ],
     // Monthly checkpoints (estimates — we'll adjust them to your real rate)
     months: [
-      { m: 1,  date: "2026-11-17", glute: 94.5, waistMax: 70,   weight: [57.6, 58.2], hipThrust: 102.5 },
-      { m: 2,  date: "2026-12-17", glute: 95,   waistMax: 70,   weight: [57.8, 58.5], hipThrust: 105 },
-      { m: 3,  date: "2027-01-17", glute: 95.5, waistMax: 70.5, weight: [58, 58.8],   hipThrust: 107.5 },
-      { m: 4,  date: "2027-02-17", glute: 96,   waistMax: 70.5, weight: [58.3, 59],   hipThrust: 110 },
-      { m: 5,  date: "2027-03-17", glute: 96.5, waistMax: 70.5, weight: [58.5, 59.3], hipThrust: 112.5 },
-      { m: 6,  date: "2027-04-17", glute: 96.5, waistMax: 69.5, weight: [58, 58.8],   hipThrust: 112.5 },
-      { m: 7,  date: "2027-05-17", glute: 96.5, waistMax: 68.5, weight: [57.6, 58.4], hipThrust: 112.5 },
-      { m: 8,  date: "2027-06-17", glute: 96.5, waistMax: 67.5, weight: [57.2, 58],   hipThrust: 112.5 },
-      { m: 9,  date: "2027-07-17", glute: 97,   waistMax: 67.5, weight: [57.5, 58.3], hipThrust: 115 },
-      { m: 10, date: "2027-08-17", glute: 97.5, waistMax: 67.5, weight: [57.8, 58.7], hipThrust: 117.5 },
-      { m: 11, date: "2027-09-17", glute: 98,   waistMax: 67.5, weight: [58, 59.2],   hipThrust: 120 },
-      { m: 12, date: "2027-10-17", glute: 99,   waistMax: 67,   weight: [58, 60],     hipThrust: 120 }
+      { m: 1,  date: "2026-11-17", glute: 94.5, waistMax: 70,   weight: [57.2, 58.2], hipThrust: 102.5 },
+      { m: 2,  date: "2026-12-17", glute: 95,   waistMax: 70,   weight: [57.2, 58.2], hipThrust: 105 },
+      { m: 3,  date: "2027-01-17", glute: 95.5, waistMax: 70.5, weight: [57.2, 58.2],   hipThrust: 107.5 },
+      { m: 4,  date: "2027-02-17", glute: 96,   waistMax: 70.5, weight: [57.2, 58.2],   hipThrust: 110 },
+      { m: 5,  date: "2027-03-17", glute: 96.5, waistMax: 70.5, weight: [57.2, 58.2], hipThrust: 112.5 },
+      { m: 6,  date: "2027-04-17", glute: 96.5, waistMax: 69.5, weight: [57.2, 58.2],   hipThrust: 112.5 },
+      { m: 7,  date: "2027-05-17", glute: 96.5, waistMax: 68.5, weight: [57.2, 58.2], hipThrust: 112.5 },
+      { m: 8,  date: "2027-06-17", glute: 96.5, waistMax: 67.5, weight: [57.2, 58.2],   hipThrust: 112.5 },
+      { m: 9,  date: "2027-07-17", glute: 97,   waistMax: 67.5, weight: [57.2, 58.2], hipThrust: 115 },
+      { m: 10, date: "2027-08-17", glute: 97.5, waistMax: 67.5, weight: [57.2, 58.2], hipThrust: 117.5 },
+      { m: 11, date: "2027-09-17", glute: 98,   waistMax: 67.5, weight: [57.2, 58.2],   hipThrust: 120 },
+      { m: 12, date: "2027-10-17", glute: 99,   waistMax: 67,   weight: [57.2, 58.2],     hipThrust: 120 }
     ]
   },
 
@@ -63,7 +61,16 @@ window.SEED = {
   // Weekly plans (week starts Monday). Each day: list of workouts; done = completed.
   plans: {
     "2026-10-12": { "2026-10-12": [], "2026-10-13": [], "2026-10-14": [], "2026-10-15": [], "2026-10-16": [], "2026-10-17": [],
-                    "2026-10-18": [{ k: "gluteA", done: true }, { k: "stretch", done: false }] }
+                    "2026-10-18": [{ k: "gluteA", done: true }, { k: "stretch", done: false }] },
+    "2026-10-19": {
+      "2026-10-19": [{ k: "upper", done: true }],
+      "2026-10-20": [{ k: "core", done: true, note: "cardio only: 30 min walk + 20 min run" }],
+      "2026-10-21": [{ k: "gluteB", done: true, note: "glute day + 8 min core" }, { k: "core", done: true, note: "8 min core after glute" }],
+      "2026-10-22": [{ k: "full", done: false }, { k: "yoga", done: false }],
+      "2026-10-23": [{ k: "stretch", done: false }],
+      "2026-10-24": [{ k: "gluteA", done: false }],
+      "2026-10-25": [{ k: "yoga", done: false }, { k: "stretch", done: false }]
+    }
   },
 
   // weight in kg
@@ -87,8 +94,16 @@ window.SEED = {
     { id: "l-1018-le2", date: "2026-10-18", exercise: "Standing Glute Kickback (machine)", weight: 65, sets: 1, reps: null, note: "per leg" },
     { id: "l-1018-rdl1", date: "2026-10-18", exercise: "RDL", weight: 25, sets: 1, reps: 6 },
     { id: "l-1018-rdl2", date: "2026-10-18", exercise: "RDL", weight: 30, sets: 1, reps: 6 },
-    { id: "l-1018-be", date: "2026-10-18", exercise: "45° Back Extension", weight: null, sets: 1, reps: 6 }
+    { id: "l-1018-be", date: "2026-10-18", exercise: "45° Back Extension", weight: null, sets: 1, reps: 6 },
+    { id: "l-2026-10-21-hip-thrust-machine-", date: "2026-10-21", exercise: "Hip Thrust (machine)", weight: 60, sets: 3, reps: 8, note: "different machine from the barbell hip thrust; 60 kg total", lock: true },
+    { id: "l-2026-10-21-barbell-rdl", date: "2026-10-21", exercise: "Barbell RDL", weight: 30, sets: 3, reps: 8, note: "20 kg plates + 10 kg bar", lock: true },
+    { id: "l-2026-10-21-hip-abduction", date: "2026-10-21", exercise: "Hip Abduction", weight: 95, sets: 3, reps: 12, lock: true },
+    { id: "l-2026-10-21-leg-curl-hamstring-", date: "2026-10-21", exercise: "Leg Curl (hamstring)", weight: 25, sets: 3, reps: 6, lock: true },
+    { id: "l-2026-10-21-cable-kickback", date: "2026-10-21", exercise: "Cable Kickback", weight: 10, sets: 2, reps: 6, note: "10 kg each side, to the side", lock: true },
+    { id: "l-2026-10-21-45-back-extension", date: "2026-10-21", exercise: "45° Back Extension", weight: 5, sets: 3, reps: 5, note: "holding 5 kg", lock: true }
   ],
+
+  removed: ["l-2026-10-21-hip-thrust", "l-2026-10-21-db-rdl", "l-2026-10-21-walking-lunges"],
 
   food: [],
   habits: []
